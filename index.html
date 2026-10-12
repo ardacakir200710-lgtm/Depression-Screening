@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psikolojik Ön Tarama Testi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #7f8c8d;
+        }
+        .question {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .options {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .options label {
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #sonuc-alani {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+        }
+        .bar-container {
+            margin-bottom: 15px;
+        }
+        .bar-label {
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .bar-bg {
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            height: 20px;
+        }
+        .bar-fill {
+            height: 100%;
+            transition: width 1s ease-in-out;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ön Tarama Testi</h1>
+    <p class="description">Lütfen aşağıdaki ifadelere son bir haftadaki durumunuzu düşünerek cevap veriniz.</p>
+
+    <form id="anket-formu">
+        <!-- Sorular JavaScript ile buraya yüklenecek -->
+    </form>
+
+    <button type="button" onclick="sonuclariGonder()">Sonuçları Analiz Et</button>
+
+    <div id="sonuc-alani">
+        <h2>Yapay Zeka Analiz Sonucu</h2>
+        <div id="grafikler"></div>
+    </div>
+</div>
+
+<script>
+    // Gerçek DASS-42 Depresyon Soruları
+    const sorular = [
+        { id: 'Q3A', text: "Hiçbir olumlu duygu yaşayamadığımı hissettim." },
+        { id: 'Q5A', text: "Bir şeyler yapmaya başlamak için kendimde hiç güç bulamadım." },
+        { id: 'Q10A', text: "Gelecekte umut verici hiçbir şey olmadığını hissettim." },
+        { id: 'Q13A', text: "Kendimi üzgün ve çökkün hissettim." },
+        { id: 'Q16A', text: "Neredeyse her şeye karşı ilgimi kaybettiğimi hissettim." },
+        { id: 'Q17A', text: "İşe yaramaz bir insan olduğumu hissettim." },
+        { id: 'Q21A', text: "Hayatın yaşamaya değmediğini hissettim." },
+        { id: 'Q24A', text: "Yaptığım hiçbir şeyden zevk alamadığımı hissettim." },
+        { id: 'Q26A', text: "Kendimi karamsar ve üzgün hissettim." },
+        { id: 'Q31A', text: "Hiçbir şeye heveslenemediğimi hissettim." },
+        { id: 'Q34A', text: "Oldukça değersiz bir insan olduğumu hissettim." },
+        { id: 'Q37A', text: "Gelecek hakkında umutlu olmak için hiçbir neden göremedim." },
+        { id: 'Q38A', text: "Hayatın anlamsız olduğunu hissettim." },
+        { id: 'Q42A', text: "Bir şeyler yapmak için inisiyatif kullanmakta zorlandım." }
+    ];
+
+    const form = document.getElementById('anket-formu');
+
+    // Soruları ekrana çiz
+    sorular.forEach((soru, index) => {
+        const soruDiv = document.createElement('div');
+        soruDiv.className = 'question';
+        soruDiv.innerHTML = `
+            <p><strong>${index + 1}.</strong> ${soru.text}</p>
+            <div class="options">
+                <label><input type="radio" name="${soru.id}" value="1" required checked> Bana hiç uymadı</label>
+                <label><input type="radio" name="${soru.id}" value="2"> Biraz uydu</label>
+                <label><input type="radio" name="${soru.id}" value="3"> Oldukça uydu</label>
+                <label><input type="radio" name="${soru.id}" value="4"> Çok fazla uydu</label>
+            </div>
+        `;
+        form.appendChild(soruDiv);
+    });
+
+    async function sonuclariGonder() {
+        const payload = {};
+        let eksikVarMi = false;
+
+        // Tüm cevapları topla
+        sorular.forEach(soru => {
+            const secilen = document.querySelector(`input[name="${soru.id}"]:checked`);
+            if (secilen) {
+                payload[soru.id] = parseInt(secilen.value);
+            } else {
+                eksikVarMi = true;
+            }
+        });
+
+        if (eksikVarMi) {
+            alert("Lütfen tüm soruları cevaplayın!");
+            return;
+        }
+
+        try {
+            // FastAPI'ye veriyi gönder
+            const response = await fetch('http://127.0.0.1:8000/api/risk-hesapla', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            sonuclariGoster(data.analiz_sonuclari);
+
+        } catch (error) {
+            alert("Sunucuya bağlanılamadı. API'ın çalıştığından emin olun.");
+            console.error(error);
+        }
+    }
+
+    function sonuclariGoster(sonuclar) {
+        document.getElementById('sonuc-alani').style.display = 'block';
+        const grafikAlani = document.getElementById('grafikler');
+        grafikAlani.innerHTML = '';
+
+        // Renkler ve Etiketler
+        const metrikler = [
+            { key: 'normal_ihtimali', label: 'Normal / Sağlıklı', color: '#2ecc71' },
+            { key: 'hafif_risk_ihtimali', label: 'Hafif Düzey Risk', color: '#f1c40f' },
+            { key: 'orta_risk_ihtimali', label: 'Orta Düzey Risk', color: '#e67e22' },
+            { key: 'siddetli_risk_ihtimali', label: 'Şiddetli Risk', color: '#e74c3c' },
+            { key: 'cok_siddetli_risk_ihtimali', label: 'Çok Şiddetli Risk', color: '#8e44ad' }
+        ];
+
+        // Her bir sonuç için bar oluştur
+        metrikler.forEach(metrik => {
+            const yuzde = sonuclar[metrik.key];
+            const barHTML = `
+                <div class="bar-container">
+                    <div class="bar-label">
+                        <span>${metrik.label}</span>
+                        <span>%${yuzde}</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" style="width: ${yuzde}%; background-color: ${metrik.color};"></div>
+                    </div>
+                </div>
+            `;
+            grafikAlani.innerHTML += barHTML;
+        });
+
+        // Ekranı yumuşakça aşağı kaydır
+        document.getElementById('sonuc-alani').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
