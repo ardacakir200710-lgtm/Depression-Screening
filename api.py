@@ -4,23 +4,22 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 
-app = FastAPI(title="Hassas Psikolojik Ön Tarama API")
+app = FastAPI(title="Mental Health Scan")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Tüm domainlere izin ver (Geliştirme aşaması için)
+    allow_origins=["*"],  # allow all domains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
+# Load the trained model
+trained_model = joblib.load("risk_model.joblib")
 
-# Model belleğe sunucu başlarken 1 kez yüklenir
-kayitli_model = joblib.load('hassas_risk_modeli.joblib')
-
-# 1. 14 Depresyon Sorusunun Şeması
-class AnketCevaplari(BaseModel):
+# 1. Schema for 14 depression questions
+class PoolAnswers(BaseModel):
     Q3A: int
     Q5A: int
     Q10A: int
@@ -36,28 +35,27 @@ class AnketCevaplari(BaseModel):
     Q38A: int
     Q42A: int
 
-@app.post("/api/risk-hesapla")
-def risk_hesapla(cevaplar: AnketCevaplari):
-    # 2. Gelen JSON verisini, modelin beklediği Pandas DataFrame formatına çeviriyoruz
-    # dict() metodu, Pydantic modelini doğrudan sözlüğe çevirir
-    veri_sozlugu = cevaplar.dict()
-    kullanici_verisi = pd.DataFrame([veri_sozlugu])
-    
-    # 3. Puanlama Düzeltmesi (1-4 aralığını 0-3 aralığına çekiyoruz)
-    kullanici_verisi = kullanici_verisi - 1
 
-    # 4. Modeli kullanarak 5 sınıfın olasılık matrisini alıyoruz
-    # [0] indeksi ile sadece ilk (ve tek) kullanıcının sonuç dizisini seçiyoruz
-    ihtimaller = kayitli_model.predict_proba(kullanici_verisi)[0]
+@app.post("/api/calculate_risk")
+def calculate_risk(answers: PoolAnswers):
+    # Convert JSON payload to a DataFrame
+    data_dict = answers.dict()
+    user_data = pd.DataFrame([data_dict])
 
-    # 5. Sonuçları frontend için yüzdelik dilimlere çevirip paketliyoruz
+    # 3. The scoring system is 0-3 instead of 1-4
+    user_data = user_data - 1
+
+    # 4. We have five risk levels, so the model returns five probability values
+    probabilities = trained_model.predict_proba(user_data)[0]
+
+    # 5. Convert results to percentages for the frontend
     return {
-        "durum": "basarili",
-        "analiz_sonuclari": {
-            "normal_ihtimali": round(ihtimaller[0] * 100, 2),
-            "hafif_risk_ihtimali": round(ihtimaller[1] * 100, 2),
-            "orta_risk_ihtimali": round(ihtimaller[2] * 100, 2),
-            "siddetli_risk_ihtimali": round(ihtimaller[3] * 100, 2),
-            "cok_siddetli_risk_ihtimali": round(ihtimaller[4] * 100, 2)
-        }
+        "status": "success",
+        "analysis_results": {
+            "normal_probability": round(probabilities[0] * 100, 2),
+            "mild_risk_probability": round(probabilities[1] * 100, 2),
+            "moderate_risk_probability": round(probabilities[2] * 100, 2),
+            "severe_risk_probability": round(probabilities[3] * 100, 2),
+            "very_severe_risk_probability": round(probabilities[4] * 100, 2),
+        },
     }

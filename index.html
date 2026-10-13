@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psikolojik Ön Tarama Testi</title>
+    <title>Psychological Pre-Screening Test</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,7 +63,7 @@
         button:hover {
             background-color: #2980b9;
         }
-        #sonuc-alani {
+        #result-area {
             display: none;
             margin-top: 30px;
             padding: 20px;
@@ -95,127 +95,126 @@
 <body>
 
 <div class="container">
-    <h1>Ön Tarama Testi</h1>
-    <p class="description">Lütfen aşağıdaki ifadelere son bir haftadaki durumunuzu düşünerek cevap veriniz.</p>
+    <h1>Pre-Screening Test</h1>
+    <p class="description">Please answer the statements below by considering your condition over the past week.</p>
 
-    <form id="anket-formu">
-        <!-- Sorular JavaScript ile buraya yüklenecek -->
+    <form id="survey-form">
+        <!-- Questions are loaded here by JavaScript -->
     </form>
 
-    <button type="button" onclick="sonuclariGonder()">Sonuçları Analiz Et</button>
+    <button type="button" onclick="analyzeResults()">Analyze Results</button>
 
-    <div id="sonuc-alani">
-        <h2>Yapay Zeka Analiz Sonucu</h2>
-        <div id="grafikler"></div>
+    <div id="result-area">
+        <h2>AI Analysis Result</h2>
+        <div id="charts"></div>
     </div>
 </div>
 
 <script>
-    // Gerçek DASS-42 Depresyon Soruları
-    const sorular = [
-        { id: 'Q3A', text: "Hiçbir olumlu duygu yaşayamadığımı hissettim." },
-        { id: 'Q5A', text: "Bir şeyler yapmaya başlamak için kendimde hiç güç bulamadım." },
-        { id: 'Q10A', text: "Gelecekte umut verici hiçbir şey olmadığını hissettim." },
-        { id: 'Q13A', text: "Kendimi üzgün ve çökkün hissettim." },
-        { id: 'Q16A', text: "Neredeyse her şeye karşı ilgimi kaybettiğimi hissettim." },
-        { id: 'Q17A', text: "İşe yaramaz bir insan olduğumu hissettim." },
-        { id: 'Q21A', text: "Hayatın yaşamaya değmediğini hissettim." },
-        { id: 'Q24A', text: "Yaptığım hiçbir şeyden zevk alamadığımı hissettim." },
-        { id: 'Q26A', text: "Kendimi karamsar ve üzgün hissettim." },
-        { id: 'Q31A', text: "Hiçbir şeye heveslenemediğimi hissettim." },
-        { id: 'Q34A', text: "Oldukça değersiz bir insan olduğumu hissettim." },
-        { id: 'Q37A', text: "Gelecek hakkında umutlu olmak için hiçbir neden göremedim." },
-        { id: 'Q38A', text: "Hayatın anlamsız olduğunu hissettim." },
-        { id: 'Q42A', text: "Bir şeyler yapmak için inisiyatif kullanmakta zorlandım." }
+    // Real DASS-42 Depression Questions
+    const questions = [
+        { id: 'Q3A', text: "I felt that I could not experience any positive emotions." },
+        { id: 'Q5A', text: "I found it very difficult to get myself to start doing anything." },
+        { id: 'Q10A', text: "I felt that there was nothing hopeful about the future." },
+        { id: 'Q13A', text: "I felt sad and downhearted." },
+        { id: 'Q16A', text: "I felt that I had lost interest in almost everything." },
+        { id: 'Q17A', text: "I felt like I was a worthless person." },
+        { id: 'Q21A', text: "I felt that life was not worth living." },
+        { id: 'Q24A', text: "I did not enjoy anything I did." },
+        { id: 'Q26A', text: "I felt gloomy and depressed." },
+        { id: 'Q31A', text: "I felt unable to become enthusiastic about anything." },
+        { id: 'Q34A', text: "I felt like a very insignificant person." },
+        { id: 'Q37A', text: "I could not see any reason to feel hopeful about the future." },
+        { id: 'Q38A', text: "I felt that life was meaningless." },
+        { id: 'Q42A', text: "I found it hard to take initiative to do things." }
     ];
 
-    const form = document.getElementById('anket-formu');
+    const form = document.getElementById('survey-form');
 
-    // Soruları ekrana çiz
-    sorular.forEach((soru, index) => {
-        const soruDiv = document.createElement('div');
-        soruDiv.className = 'question';
-        soruDiv.innerHTML = `
-            <p><strong>${index + 1}.</strong> ${soru.text}</p>
+    // Render questions on the page
+    questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.innerHTML = `
+            <p><strong>${index + 1}.</strong> ${question.text}</p>
             <div class="options">
-                <label><input type="radio" name="${soru.id}" value="1" required checked> Bana hiç uymadı</label>
-                <label><input type="radio" name="${soru.id}" value="2"> Biraz uydu</label>
-                <label><input type="radio" name="${soru.id}" value="3"> Oldukça uydu</label>
-                <label><input type="radio" name="${soru.id}" value="4"> Çok fazla uydu</label>
+                <label><input type="radio" name="${question.id}" value="1" required checked> Not at all</label>
+                <label><input type="radio" name="${question.id}" value="2"> A little</label>
+                <label><input type="radio" name="${question.id}" value="3"> Quite a bit</label>
+                <label><input type="radio" name="${question.id}" value="4"> Very much</label>
             </div>
         `;
-        form.appendChild(soruDiv);
+        form.appendChild(questionDiv);
     });
 
-    async function sonuclariGonder() {
+    async function analyzeResults() {
         const payload = {};
-        let eksikVarMi = false;
+        let missingAnswer = false;
 
-        // Tüm cevapları topla
-        sorular.forEach(soru => {
-            const secilen = document.querySelector(`input[name="${soru.id}"]:checked`);
-            if (secilen) {
-                payload[soru.id] = parseInt(secilen.value);
+        // Collect all answers
+        questions.forEach(question => {
+            const selected = document.querySelector(`input[name="${question.id}"]:checked`);
+            if (selected) {
+                payload[question.id] = parseInt(selected.value);
             } else {
-                eksikVarMi = true;
+                missingAnswer = true;
             }
         });
 
-        if (eksikVarMi) {
-            alert("Lütfen tüm soruları cevaplayın!");
+        if (missingAnswer) {
+            alert("Please answer all questions!");
             return;
         }
 
         try {
-            // FastAPI'ye veriyi gönder
-            const response = await fetch('http://127.0.0.1:8000/api/risk-hesapla', {
+            // Send data to FastAPI
+            const response = await fetch('http://127.0.0.1:8000/api/calculate_risk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             const data = await response.json();
-            sonuclariGoster(data.analiz_sonuclari);
-
+            displayResults(data.analysis_results);
         } catch (error) {
-            alert("Sunucuya bağlanılamadı. API'ın çalıştığından emin olun.");
+            alert("Unable to reach the server. Please make sure the API is running.");
             console.error(error);
         }
     }
 
-    function sonuclariGoster(sonuclar) {
-        document.getElementById('sonuc-alani').style.display = 'block';
-        const grafikAlani = document.getElementById('grafikler');
-        grafikAlani.innerHTML = '';
+    function displayResults(results) {
+        document.getElementById('result-area').style.display = 'block';
+        const chartsArea = document.getElementById('charts');
+        chartsArea.innerHTML = '';
 
-        // Renkler ve Etiketler
-        const metrikler = [
-            { key: 'normal_ihtimali', label: 'Normal / Sağlıklı', color: '#2ecc71' },
-            { key: 'hafif_risk_ihtimali', label: 'Hafif Düzey Risk', color: '#f1c40f' },
-            { key: 'orta_risk_ihtimali', label: 'Orta Düzey Risk', color: '#e67e22' },
-            { key: 'siddetli_risk_ihtimali', label: 'Şiddetli Risk', color: '#e74c3c' },
-            { key: 'cok_siddetli_risk_ihtimali', label: 'Çok Şiddetli Risk', color: '#8e44ad' }
+        // Colors and labels
+        const metrics = [
+            { key: 'normal_probability', label: 'Normal / Healthy', color: '#2ecc71' },
+            { key: 'mild_risk_probability', label: 'Mild Risk', color: '#f1c40f' },
+            { key: 'moderate_risk_probability', label: 'Moderate Risk', color: '#e67e22' },
+            { key: 'severe_risk_probability', label: 'Severe Risk', color: '#e74c3c' },
+            { key: 'very_severe_risk_probability', label: 'Very Severe Risk', color: '#8e44ad' }
         ];
 
-        // Her bir sonuç için bar oluştur
-        metrikler.forEach(metrik => {
-            const yuzde = sonuclar[metrik.key];
+        // Create a bar for each result
+        metrics.forEach(metric => {
+            const percentage = results[metric.key];
             const barHTML = `
                 <div class="bar-container">
                     <div class="bar-label">
-                        <span>${metrik.label}</span>
-                        <span>%${yuzde}</span>
+                        <span>${metric.label}</span>
+                        <span>%${percentage}</span>
                     </div>
                     <div class="bar-bg">
-                        <div class="bar-fill" style="width: ${yuzde}%; background-color: ${metrik.color};"></div>
+                        <div class="bar-fill" style="width: ${percentage}%; background-color: ${metric.color};"></div>
                     </div>
                 </div>
             `;
-            grafikAlani.innerHTML += barHTML;
+            chartsArea.innerHTML += barHTML;
         });
 
-        // Ekranı yumuşakça aşağı kaydır
-        document.getElementById('sonuc-alani').scrollIntoView({ behavior: 'smooth' });
+        // Smoothly scroll the page down to the results
+        document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
     }
 </script>
 
